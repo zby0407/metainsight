@@ -1,0 +1,6 @@
+ARG BASE_IMAGE=deer-flow-gateway:latest
+FROM ${BASE_IMAGE}
+
+COPY backend/app/gateway/dsa_automation.py /app/backend/app/gateway/dsa_automation.py
+
+RUN cd /app/backend && PYTHONPATH=. uv run --no-sync python -m compileall -q app/gateway/dsa_automation.py

@@ -1,0 +1,10 @@
+FROM deer-flow-frontend:latest
+
+COPY frontend/src/components/workspace/settings/notification-settings-page.tsx /app/src/components/workspace/settings/notification-settings-page.tsx
+
+# Production image may not have pnpm on PATH; enable via corepack.
+RUN corepack enable \
+ && corepack prepare pnpm@10.26.2 --activate \
+ && cd /app \
+ && SKIP_ENV_VALIDATION=1 NEXT_CONFIG_BUILD_OUTPUT=standalone pnpm build \
+ && rm -rf .next/cache

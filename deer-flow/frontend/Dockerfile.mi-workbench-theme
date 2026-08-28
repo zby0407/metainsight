@@ -1,0 +1,13 @@
+FROM deer-flow-frontend:latest
+
+# Prebuilt host artifacts — avoids needing pnpm inside the runtime image.
+COPY frontend/.next/standalone/ /app/frontend/
+COPY frontend/.next/static /app/frontend/.next/static
+COPY frontend/src/styles/globals.css /app/frontend/src/styles/globals.css
+COPY frontend/src/app/workspace/workspace-content.tsx /app/frontend/src/app/workspace/workspace-content.tsx
+COPY frontend/src/components/workspace/workspace-header.tsx /app/frontend/src/components/workspace/workspace-header.tsx
+COPY frontend/src/components/workspace/workspace-nav-chat-list.tsx /app/frontend/src/components/workspace/workspace-nav-chat-list.tsx
+COPY frontend/src/components/workspace/workspace-nav-menu.tsx /app/frontend/src/components/workspace/workspace-nav-menu.tsx
+COPY frontend/src/components/workspace/recent-chat-list.tsx /app/frontend/src/components/workspace/recent-chat-list.tsx
+COPY frontend/src/components/workspace/research-notification-center.tsx /app/frontend/src/components/workspace/research-notification-center.tsx
+COPY frontend/src/core/i18n/locales/zh-CN.ts /app/frontend/src/core/i18n/locales/zh-CN.ts

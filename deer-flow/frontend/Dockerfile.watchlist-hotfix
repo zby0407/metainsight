@@ -1,0 +1,9 @@
+FROM deer-flow-frontend:dsa-name-search
+
+COPY frontend/src/components/workspace/workspace-nav-chat-list.tsx /app/frontend/src/components/workspace/workspace-nav-chat-list.tsx
+COPY frontend/src/components/market/market-workspace.tsx /app/frontend/src/components/market/market-workspace.tsx
+COPY frontend/src/components/market/watchlist-workspace.tsx /app/frontend/src/components/market/watchlist-workspace.tsx
+COPY frontend/src/app/workspace/watchlist/page.tsx /app/frontend/src/app/workspace/watchlist/page.tsx
+COPY frontend/src/app/workspace/chats /app/frontend/src/app/workspace/chats
+
+RUN cd /app/frontend && SKIP_ENV_VALIDATION=1 pnpm build

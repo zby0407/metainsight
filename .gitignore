@@ -1,0 +1,45 @@
+# Secrets — never commit API keys or login secrets
+.env
+.env.*
+!.env.example
+
+# Doc screenshots that may contain real credentials
+daily-stock-analysis/docs/assets/secret_config.png
+daily-stock-analysis/docs/bot/appkey.png
+
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build output
+.next/
+**/.next/
+dist/
+build/
+output/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.pytest_cache/
+
+# Runtime data / logs / backups
+logs/
+*.log
+data/
+runtime-backups/
+longbridge_tokens/
+.deer-flow/
+**/.deer-flow/
+
+# Nested git repos (tracked separately)
+# (deer-flow and daily-stock-analysis have their own .git)
+
+# OS
+.DS_Store
+
+# Playwright / test artifacts
+test-results/
+playwright-report/

@@ -1,0 +1,12 @@
+ARG BASE_IMAGE=deer-flow-gateway:latest
+FROM ${BASE_IMAGE}
+
+USER root
+COPY backend/packages/harness/deerflow/community/finance_agent/ /app/backend/packages/harness/deerflow/community/finance_agent/
+COPY backend/app/gateway/routers/finance_portfolios.py /app/backend/app/gateway/routers/finance_portfolios.py
+
+RUN cd /app/backend && uv run --no-sync python -c \
+    "from pathlib import Path; path = Path('app/gateway/app.py'); source = path.read_text(); import_anchor = '    feedback,\n'; include_anchor = '    app.include_router(feedback.router)\n'; assert 'finance_portfolios,' in source or import_anchor in source; assert 'app.include_router(finance_portfolios.router)' in source or include_anchor in source; source = source if 'finance_portfolios,' in source else source.replace(import_anchor, import_anchor + '    finance_portfolios,\n', 1); source = source if 'app.include_router(finance_portfolios.router)' in source else source.replace(include_anchor, include_anchor + '\n    # Current-user investment portfolio read projection\n    app.include_router(finance_portfolios.router)\n', 1); path.write_text(source)"
+
+RUN cd /app/backend && uv run --no-sync python -c \
+    "from app.gateway.app import create_app; from deerflow.community.finance_agent.tools import finance_capability_catalog_tool, finance_capability_execute_tool, finance_action_intent_tool; app = create_app(); assert any(route.path == '/api/finance/portfolio-dashboard' for route in app.routes); assert finance_capability_catalog_tool.name == 'finance_capability_catalog'; assert finance_capability_execute_tool.name == 'finance_capability_execute'; assert finance_action_intent_tool.name == 'finance_action_intent'"

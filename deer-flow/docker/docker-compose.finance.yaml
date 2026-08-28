@@ -1,0 +1,9 @@
+services:
+  gateway:
+    networks:
+      - finance-backend
+
+networks:
+  finance-backend:
+    external: true
+    name: ${DEERFLOW_FINANCE_NETWORK:-pipecat_default}

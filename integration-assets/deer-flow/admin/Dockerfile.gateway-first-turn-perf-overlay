@@ -1,0 +1,26 @@
+ARG BASE_IMAGE=deer-flow-gateway:investment-agent-ux-20260716T0850CST
+FROM ${BASE_IMAGE}
+
+COPY source/backend/app/gateway/routers/mcp.py /app/backend/app/gateway/routers/mcp.py
+COPY source/backend/packages/harness/deerflow/agents/middlewares/title_middleware.py /app/backend/packages/harness/deerflow/agents/middlewares/title_middleware.py
+COPY source/backend/packages/harness/deerflow/config/extensions_config.py /app/backend/packages/harness/deerflow/config/extensions_config.py
+COPY source/backend/packages/harness/deerflow/config/title_config.py /app/backend/packages/harness/deerflow/config/title_config.py
+COPY source/backend/packages/harness/deerflow/mcp/tools.py /app/backend/packages/harness/deerflow/mcp/tools.py
+COPY admin/backend/apply_first_turn_perf_overlay.py /tmp/apply_first_turn_perf_overlay.py
+
+# Prime npx's immutable package cache in the image. Without this, every fresh
+# production container downloads api-to-mcp before the Gateway can become ready
+# (about 45 seconds on the current registry path).
+RUN timeout 120 npx -y @tyk-technologies/api-to-mcp@0.1.1 --help >/dev/null
+
+RUN cd /app/backend \
+    && uv run --no-sync python /tmp/apply_first_turn_perf_overlay.py \
+    && PYTHONPATH=/app/backend:/app/backend/packages/harness uv run --no-sync python -m compileall -q \
+       app/gateway/app.py \
+       app/gateway/routers/mcp.py \
+       packages/harness/deerflow/agents/middlewares/title_middleware.py \
+       packages/harness/deerflow/config/extensions_config.py \
+       packages/harness/deerflow/config/title_config.py \
+       packages/harness/deerflow/mcp/tools.py \
+    && PYTHONPATH=/app/backend:/app/backend/packages/harness uv run --no-sync python -c \
+       "from deerflow.config.extensions_config import McpServerConfig; from deerflow.config.title_config import TitleConfig; assert McpServerConfig(command='npx').session_scope == 'thread'; assert TitleConfig().generation_mode == 'model'"

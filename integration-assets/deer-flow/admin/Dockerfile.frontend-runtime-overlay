@@ -1,0 +1,3 @@
+FROM deer-flow-frontend:pre-user-admin-20260714
+
+COPY frontend/.next /app/frontend/.next

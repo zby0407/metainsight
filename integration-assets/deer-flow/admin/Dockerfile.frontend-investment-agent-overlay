@@ -1,0 +1,28 @@
+ARG BASE_IMAGE=deer-flow-frontend:portfolio-performance-20260716T1210CST
+FROM ${BASE_IMAGE}
+
+COPY source/frontend/src/app/workspace/chats/[[]thread_id]/providers.tsx /app/frontend/src/app/workspace/chats/[thread_id]/providers.tsx
+COPY source/frontend/src/app/workspace/chats/[[]thread_id]/page.tsx /app/frontend/src/app/workspace/chats/[thread_id]/page.tsx
+COPY source/frontend/src/components/workspace/agents/agent-gallery.tsx /app/frontend/src/components/workspace/agents/agent-gallery.tsx
+COPY source/frontend/src/components/workspace/agents/portfolio-dashboard.tsx /app/frontend/src/components/workspace/agents/portfolio-dashboard.tsx
+COPY source/frontend/src/components/workspace/agents/portfolio-setup-wizard.tsx /app/frontend/src/components/workspace/agents/portfolio-setup-wizard.tsx
+COPY source/frontend/src/core/agents/index.ts /app/frontend/src/core/agents/index.ts
+COPY source/frontend/src/core/agents/investment-chat.ts /app/frontend/src/core/agents/investment-chat.ts
+COPY source/frontend/src/core/finance/ /app/frontend/src/core/finance/
+COPY source/frontend/src/core/i18n/locales/en-US.ts /app/frontend/src/core/i18n/locales/en-US.ts
+COPY source/frontend/src/core/i18n/locales/types.ts /app/frontend/src/core/i18n/locales/types.ts
+COPY source/frontend/src/core/i18n/locales/zh-CN.ts /app/frontend/src/core/i18n/locales/zh-CN.ts
+COPY source/frontend/src/core/settings/index.ts /app/frontend/src/core/settings/index.ts
+COPY admin/branding/apply-investment-agent-branding.mjs /tmp/apply-investment-agent-branding.mjs
+
+RUN cd /app/frontend \
+    && node /tmp/apply-investment-agent-branding.mjs \
+    && rm -f src/components/workspace/agents/portfolio-workflow-panel.tsx \
+    && grep -q "PortfolioSetupWizard" src/components/workspace/agents/portfolio-dashboard.tsx \
+    && grep -q "createPortfolioWorkflowChatHref" src/components/workspace/agents/portfolio-dashboard.tsx \
+    && grep -q "autostart" 'src/app/workspace/chats/[thread_id]/page.tsx' \
+    && ! grep -q "runs.wait" src/core/finance/workflows.ts \
+    && SKIP_ENV_VALIDATION=1 pnpm build
+
+WORKDIR /app/frontend
+CMD ["pnpm", "start"]

@@ -1,0 +1,14 @@
+ARG BASE_IMAGE=deer-flow-gateway:latest
+FROM ${BASE_IMAGE}
+
+# Emergency low-bandwidth release path. The dependency manifests must match
+# the verified production base byte-for-byte before source is overlaid.
+USER root
+WORKDIR /app
+COPY backend/pyproject.toml backend/uv.lock /tmp/release-manifests/
+RUN cmp /tmp/release-manifests/pyproject.toml /app/backend/pyproject.toml \
+    && cmp /tmp/release-manifests/uv.lock /app/backend/uv.lock
+COPY backend/ ./backend/
+RUN cd /app/backend \
+    && PYTHONPATH=. .venv/bin/python -c \
+      "from app.gateway.app import app; paths={route.path for route in app.routes}; assert '/api/v1/news/{path:path}' in paths; assert '/api/v1/news-preferences' in paths"

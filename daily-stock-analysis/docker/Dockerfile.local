@@ -1,0 +1,71 @@
+# Local/China-friendly DSA image: reuse prebuilt static/, apt+pip mirrors.
+# syntax=docker/dockerfile:1.7
+
+FROM python:3.11-slim-bookworm
+
+WORKDIR /app
+
+ENV TZ=Asia/Shanghai
+RUN ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && echo $TZ > /etc/timezone
+
+# Use Aliyun Debian mirror (deb.debian.org often times out in CN networks)
+RUN set -eux; \
+    if [ -f /etc/apt/sources.list.d/debian.sources ]; then \
+      sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list.d/debian.sources; \
+    fi; \
+    if [ -f /etc/apt/sources.list ]; then \
+      sed -i 's|deb.debian.org|mirrors.aliyun.com|g; s|security.debian.org|mirrors.aliyun.com|g' /etc/apt/sources.list; \
+    fi; \
+    apt-get update && apt-get install -y --no-install-recommends \
+      gcc \
+      curl \
+      git \
+      gosu \
+      wkhtmltopdf \
+      fontconfig \
+      libjpeg62-turbo \
+      libxrender1 \
+      libxext6 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN groupadd -g 1000 dsa && \
+    useradd -u 1000 -g dsa -m dsa
+
+COPY requirements.txt .
+RUN --mount=type=cache,target=/root/.cache/pip \
+    pip install -i https://mirrors.aliyun.com/pypi/simple/ --trusted-host mirrors.aliyun.com -r requirements.txt
+
+COPY *.py ./
+COPY api/ ./api/
+COPY data_provider/ ./data_provider/
+COPY bot/ ./bot/
+COPY src/ ./src/
+COPY strategies/ ./strategies/
+COPY static/ ./static/
+COPY docker/entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+
+RUN python -c "import alphasift.dsa_adapter"
+
+RUN mkdir -p /app/data /app/logs /app/reports && \
+    chown -R dsa:dsa /app && \
+    chmod +x /usr/local/bin/docker-entrypoint.sh
+
+RUN EF_DATA_DIR="$(python -c 'import efinance, pathlib; print(pathlib.Path(efinance.__file__).parent / "data")')" && \
+    mkdir -p "$EF_DATA_DIR" && \
+    chown -R dsa:dsa "$EF_DATA_DIR"
+
+ENV PYTHONUNBUFFERED=1
+ENV LOG_DIR=/app/logs
+ENV DATABASE_PATH=/app/data/stock_analysis.db
+ENV WEBUI_HOST=0.0.0.0
+ENV API_PORT=8000
+
+EXPOSE 8000
+VOLUME ["/app/data", "/app/logs", "/app/reports"]
+
+HEALTHCHECK --interval=30s --timeout=10s --start-period=10s --retries=3 \
+    CMD curl -f http://localhost:8000/api/health || curl -f http://localhost:8000/health \
+    || python -c "import sys; sys.exit(0)"
+
+ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
+CMD ["python", "main.py", "--schedule"]

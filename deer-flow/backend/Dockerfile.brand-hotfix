@@ -1,0 +1,7 @@
+# White-label release layer. Reuses the verified production runtime and only
+# replaces application source, so a branding rollout does not reinstall the
+# Python/Node dependency stack.
+ARG BASE_IMAGE=deer-flow-gateway:latest
+FROM ${BASE_IMAGE}
+
+COPY backend /app/backend

@@ -1,0 +1,21 @@
+ARG BASE_IMAGE=deer-flow-gateway:latest
+FROM ${BASE_IMAGE}
+
+COPY backend/app/gateway/app.py /app/backend/app/gateway/app.py
+COPY backend/app/gateway/deps.py /app/backend/app/gateway/deps.py
+COPY backend/app/gateway/auth/models.py /app/backend/app/gateway/auth/models.py
+COPY backend/app/gateway/auth/local_provider.py /app/backend/app/gateway/auth/local_provider.py
+COPY backend/app/gateway/auth/repositories/base.py /app/backend/app/gateway/auth/repositories/base.py
+COPY backend/app/gateway/auth/repositories/sqlite.py /app/backend/app/gateway/auth/repositories/sqlite.py
+COPY backend/app/gateway/routers/auth.py /app/backend/app/gateway/routers/auth.py
+COPY backend/app/gateway/routers/admin_users.py /app/backend/app/gateway/routers/admin_users.py
+COPY backend/app/gateway/routers/dsa_automation.py /app/backend/app/gateway/routers/dsa_automation.py
+COPY backend/app/gateway/routers/threads.py /app/backend/app/gateway/routers/threads.py
+COPY backend/app/gateway/routers/thread_runs.py /app/backend/app/gateway/routers/thread_runs.py
+COPY backend/app/gateway/dsa_automation.py /app/backend/app/gateway/dsa_automation.py
+COPY backend/packages/harness/deerflow/persistence/user/model.py /app/backend/packages/harness/deerflow/persistence/user/model.py
+COPY backend/packages/harness/deerflow/persistence/migrations/versions/0003_user_admin_console.py /app/backend/packages/harness/deerflow/persistence/migrations/versions/0003_user_admin_console.py
+COPY backend/packages/harness/deerflow/persistence/dsa /app/backend/packages/harness/deerflow/persistence/dsa
+COPY backend/packages/harness/deerflow/persistence/migrations/versions/0004_dsa_auto_research.py /app/backend/packages/harness/deerflow/persistence/migrations/versions/0004_dsa_auto_research.py
+
+RUN cd /app/backend && PYTHONPATH=. uv run --no-sync python -m compileall -q app packages/harness/deerflow/persistence

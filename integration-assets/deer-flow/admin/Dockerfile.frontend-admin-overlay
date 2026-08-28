@@ -1,0 +1,23 @@
+ARG BASE_IMAGE=deer-flow-frontend:pre-user-admin-20260714
+FROM ${BASE_IMAGE}
+
+COPY branding/apply-product-branding.mjs /tmp/apply-product-branding.mjs
+COPY branding/zhiheng-mark.svg /app/frontend/public/images/zhiheng-mark.svg
+COPY branding/zhiheng-mask.svg /app/frontend/public/images/zhiheng-mask.svg
+COPY frontend/src/components/workspace/workspace-nav-menu.tsx /app/frontend/src/components/workspace/workspace-nav-menu.tsx
+COPY frontend/src/components/workspace/research-notification-center.tsx /app/frontend/src/components/workspace/research-notification-center.tsx
+COPY frontend/src/components/market/dsa-auto-research-panel.tsx /app/frontend/src/components/market/dsa-auto-research-panel.tsx
+COPY frontend/src/components/workspace/messages/markdown-content.tsx /app/frontend/src/components/workspace/messages/markdown-content.tsx
+COPY frontend/src/components/workspace/citations/citation-link.tsx /app/frontend/src/components/workspace/citations/citation-link.tsx
+COPY frontend/src/core/streamdown/plugins.ts /app/frontend/src/core/streamdown/plugins.ts
+COPY frontend/src/components/admin/admin-users-workspace.tsx /app/frontend/src/components/admin/admin-users-workspace.tsx
+COPY frontend/src/app/workspace/admin/users/page.tsx /app/frontend/src/app/workspace/admin/users/page.tsx
+COPY frontend/src/app/(auth)/login/page.tsx /app/frontend/src/app/(auth)/login/page.tsx
+COPY frontend/src/app/(auth)/setup/page.tsx /app/frontend/src/app/(auth)/setup/page.tsx
+
+RUN cd /app/frontend \
+    && node /tmp/apply-product-branding.mjs \
+    && SKIP_ENV_VALIDATION=1 pnpm build
+
+WORKDIR /app/frontend
+CMD ["pnpm", "start"]

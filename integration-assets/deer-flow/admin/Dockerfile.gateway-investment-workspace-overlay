@@ -1,0 +1,10 @@
+ARG BASE_IMAGE=deer-flow-gateway:first-turn-perf-warm-20260716T1120CST
+FROM ${BASE_IMAGE}
+
+COPY source/backend/app/gateway/routers/finance_portfolios.py /app/backend/app/gateway/routers/finance_portfolios.py
+
+RUN cd /app/backend \
+    && PYTHONPATH=/app/backend:/app/backend/packages/harness uv run --no-sync python -m compileall -q \
+       app/gateway/routers/finance_portfolios.py \
+    && PYTHONPATH=/app/backend:/app/backend/packages/harness uv run --no-sync python -c \
+       "from app.gateway.app import create_app; app = create_app(); paths = {route.path for route in app.routes}; assert '/api/finance/portfolio-dashboard' in paths; assert '/api/finance/portfolio-setup' in paths"

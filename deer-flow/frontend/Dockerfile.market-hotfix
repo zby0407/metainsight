@@ -1,0 +1,5 @@
+FROM deer-flow-frontend:latest
+
+COPY frontend/src/components/market/market-workspace.tsx /app/frontend/src/components/market/market-workspace.tsx
+
+RUN cd /app/frontend && SKIP_ENV_VALIDATION=1 pnpm build
