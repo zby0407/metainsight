@@ -728,6 +728,33 @@ class PortfolioRepository:
                 return None
             return float(row.close), row.date
 
+    def list_daily_closes(
+        self,
+        *,
+        symbols: List[str],
+        start_date: date,
+        end_date: date,
+    ) -> Dict[str, Dict[date, float]]:
+        """Return {symbol: {date: close}} for the given window (cached history only)."""
+        if not symbols:
+            return {}
+        with self.db.get_session() as session:
+            rows = session.execute(
+                select(StockDaily.code, StockDaily.date, StockDaily.close).where(
+                    and_(
+                        StockDaily.code.in_(symbols),
+                        StockDaily.date >= start_date,
+                        StockDaily.date <= end_date,
+                    )
+                )
+            ).all()
+        result: Dict[str, Dict[date, float]] = {symbol: {} for symbol in symbols}
+        for code, row_date, close in rows:
+            if close is None:
+                continue
+            result.setdefault(code, {})[row_date] = float(close)
+        return result
+
     def save_fx_rate(
         self,
         *,

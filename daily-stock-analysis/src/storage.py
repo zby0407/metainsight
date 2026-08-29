@@ -685,6 +685,39 @@ class PortfolioFxRate(Base):
     )
 
 
+class PortfolioInvestorProfile(Base):
+    """Structured investor risk profile used by insight rule engines."""
+
+    __tablename__ = 'portfolio_investor_profile'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    owner_id = Column(String(64), nullable=False, unique=True, index=True)
+    cash_floor_pct = Column(Float, nullable=False, default=5.0)
+    single_position_cap_pct = Column(Float, nullable=False, default=35.0)
+    sector_cap_pct = Column(Float, nullable=False, default=40.0)
+    rebalance_threshold_pct = Column(Float, nullable=False, default=10.0)
+    stop_loss_pct = Column(Float, nullable=False, default=10.0)
+    updated_at = Column(DateTime, default=datetime.now, onupdate=datetime.now)
+
+
+class PortfolioInsightReport(Base):
+    """Persisted insight reports (evidence pack + AI interpretation)."""
+
+    __tablename__ = 'portfolio_insight_reports'
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    pack_id = Column(String(36), nullable=False, unique=True, index=True)
+    account_id = Column(Integer, ForeignKey('portfolio_accounts.id'), nullable=False, index=True)
+    pack_type = Column(String(16), nullable=False, index=True)  # review/risk/strategy/sandbox
+    evidence_pack_json = Column(Text, nullable=False)
+    ai_interpretation = Column(Text)
+    created_at = Column(DateTime, default=datetime.now, index=True)
+
+    __table_args__ = (
+        Index('ix_insight_reports_account_type', 'account_id', 'pack_type', 'created_at'),
+    )
+
+
 class ConversationMessage(Base):
     """
     Agent 对话历史记录表

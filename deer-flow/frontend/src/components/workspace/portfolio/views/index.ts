@@ -34,10 +34,10 @@ export const TRACK_ITEMS: TrackItem[] = [
 ];
 
 export const SERVICE_ITEMS: { view: PortfolioView; label: string; implemented: boolean }[] = [
-  { view: "review", label: "复盘报告", implemented: false },
+  { view: "review", label: "复盘报告", implemented: true },
   { view: "risk", label: "风险诊断", implemented: true },
-  { view: "strategy", label: "策略建议", implemented: false },
-  { view: "sandbox", label: "模拟沙盘", implemented: false },
+  { view: "strategy", label: "策略建议", implemented: true },
+  { view: "sandbox", label: "模拟沙盘", implemented: true },
 ];
 
 export { OverviewView } from "./overview-view";
@@ -45,3 +45,6 @@ export { HoldingsView } from "./holdings-view";
 export { EarningsView } from "./earnings-view";
 export { AllocationView } from "./allocation-view";
 export { RiskView } from "./risk-view";
+export { ReviewView } from "./review-view";
+export { StrategyView } from "./strategy-view";
+export { SandboxView } from "./sandbox-view";

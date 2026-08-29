@@ -22,7 +22,10 @@ import {
   EarningsView,
   HoldingsView,
   OverviewView,
+  ReviewView,
   RiskView,
+  SandboxView,
+  StrategyView,
   type PortfolioView,
 } from "./views";
 import { ComingSoonView } from "./views/coming-soon-view";
@@ -86,7 +89,15 @@ export function PortfolioHome() {
 
         <main className="min-w-0 flex-1 overflow-y-auto px-6 py-8 md:px-8">
           {selected ? (
-            <MainView view={activeView} item={selected} />
+            <MainView
+              view={activeView}
+              item={selected}
+              portfolios={portfolios}
+              onSelectPortfolio={(id) => {
+                setSelectedId(id);
+                setActiveView("holdings");
+              }}
+            />
           ) : isLoading ? (
             <DashboardSkeleton />
           ) : error ? (
@@ -100,22 +111,44 @@ export function PortfolioHome() {
           )}
         </main>
 
-        {selected ? <PortfolioRightRail item={selected} /> : null}
+        {selected && !INSIGHT_VIEWS.has(activeView) ? (
+          <PortfolioRightRail
+            item={selected}
+            onReview={() => setActiveView("review")}
+          />
+        ) : null}
       </div>
     </div>
   );
 }
 
+const INSIGHT_VIEWS: ReadonlySet<PortfolioView> = new Set([
+  "review",
+  "risk",
+  "strategy",
+  "sandbox",
+]);
+
 function MainView({
   view,
   item,
+  portfolios,
+  onSelectPortfolio,
 }: {
   view: PortfolioView;
   item: PortfolioDashboardItem;
+  portfolios: PortfolioDashboardItem[];
+  onSelectPortfolio: (id: string) => void;
 }) {
   switch (view) {
     case "overview":
-      return <OverviewView item={item} />;
+      return (
+        <OverviewView
+          item={item}
+          portfolios={portfolios}
+          onSelectPortfolio={onSelectPortfolio}
+        />
+      );
     case "holdings":
       return <HoldingsView item={item} />;
     case "earnings":
@@ -124,13 +157,22 @@ function MainView({
       return <AllocationView item={item} />;
     case "risk":
       return <RiskView item={item} />;
-    case "forecast":
     case "review":
+      return <ReviewView item={item} />;
     case "strategy":
+      return <StrategyView item={item} />;
     case "sandbox":
+      return <SandboxView item={item} />;
+    case "forecast":
       return <ComingSoonView view={view} />;
     default:
-      return <OverviewView item={item} />;
+      return (
+        <OverviewView
+          item={item}
+          portfolios={portfolios}
+          onSelectPortfolio={onSelectPortfolio}
+        />
+      );
   }
 }
 

@@ -1,0 +1,14 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>probe</title>
+  </head>
+  <body>
+    <div id="out">not-run</div>
+    <script>
+      window.__probeRan = true;
+      document.getElementById("out").textContent = "inline-script-ran";
+    </script>
+  </body>
+</html>

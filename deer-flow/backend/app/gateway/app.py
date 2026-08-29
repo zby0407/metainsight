@@ -29,6 +29,7 @@ from app.gateway.routers import (
     models,
     news_preferences,
     news_proxy,
+    portfolio_insights,
     runs,
     skills,
     suggestions,
@@ -496,6 +497,9 @@ This gateway provides runtime endpoints for agent runs plus custom endpoints for
 
     # Authenticated, owner-scoped Finance read projection for the Agent UI.
     app.include_router(finance_portfolios.router)
+
+    # Explainable insight pipeline: deterministic compute + grounded AI reading.
+    app.include_router(portfolio_insights.router)
 
     # Thread Runs API (LangGraph Platform-compatible runs lifecycle)
     app.include_router(thread_runs.router)

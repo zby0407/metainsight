@@ -1076,6 +1076,8 @@ class Config:
     portfolio_risk_stop_loss_near_ratio: float = 0.8
     portfolio_risk_lookback_days: int = 180
     portfolio_fx_update_enabled: bool = True
+    # 绩效指标（夏普比率）使用的无风险利率（年化，%）
+    portfolio_risk_free_rate_pct: float = 1.5
 
     # Discord 机器人状态
     discord_bot_status: str = "A股智能分析 | /help"
@@ -2084,6 +2086,12 @@ class Config:
                 minimum=1,
             ),
             portfolio_fx_update_enabled=os.getenv('PORTFOLIO_FX_UPDATE_ENABLED', 'true').lower() == 'true',
+            portfolio_risk_free_rate_pct=parse_env_float(
+                os.getenv('PORTFOLIO_RISK_FREE_RATE_PCT'),
+                1.5,
+                field_name='PORTFOLIO_RISK_FREE_RATE_PCT',
+                minimum=0.0,
+            ),
             alphasift_enabled=parse_env_bool(os.getenv('ALPHASIFT_ENABLED'), default=False),
             alphasift_install_spec=(
                 DEFAULT_ALPHASIFT_INSTALL_SPEC

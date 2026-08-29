@@ -52,7 +52,13 @@ function percent(value: string | null | undefined) {
   return Number.isFinite(n) ? n : null;
 }
 
-export function PortfolioRightRail({ item }: { item: PortfolioDashboardItem }) {
+export function PortfolioRightRail({
+  item,
+  onReview,
+}: {
+  item: PortfolioDashboardItem;
+  onReview?: () => void;
+}) {
   const [hidden, setHidden] = useState<Record<string, boolean>>({});
   const hide = (key: string) => setHidden((h) => ({ ...h, [key]: true }));
   const { data: risk } = useStockPortfolioRisk();
@@ -83,7 +89,10 @@ export function PortfolioRightRail({ item }: { item: PortfolioDashboardItem }) {
           <p className="mt-2 text-xs leading-5 opacity-80">
             一键生成组合表现、风险与调仓建议。
           </p>
-          <button className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3.5 py-2 text-xs font-medium backdrop-blur-sm transition-colors hover:bg-white/25">
+          <button
+            onClick={onReview}
+            className="mt-4 inline-flex items-center gap-1.5 rounded-lg bg-white/15 px-3.5 py-2 text-xs font-medium backdrop-blur-sm transition-colors hover:bg-white/25"
+          >
             立即复盘
             <ChevronRightIcon className="size-3.5" />
           </button>

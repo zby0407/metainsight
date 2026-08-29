@@ -54,6 +54,12 @@ function mapPosition(
 }
 
 /** Resolve display names for symbols via the history endpoint (cached, fast). */
+export async function getStockSymbolNames(
+  symbols: string[],
+): Promise<Record<string, string>> {
+  return fetchSymbolNames(symbols);
+}
+
 async function fetchSymbolNames(
   symbols: string[],
 ): Promise<Record<string, string>> {

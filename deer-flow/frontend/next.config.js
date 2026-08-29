@@ -28,6 +28,9 @@ const config = {
     // Hotfix / constrained CI builds can skip tsc when explicitly requested.
     ignoreBuildErrors: process.env.SKIP_TS_CHECK === "1",
   },
+  // Next dev blocks client bootstrapping for origins outside this list;
+  // local testing uses http://127.0.0.1:3000 and LAN addresses.
+  allowedDevOrigins: ["127.0.0.1", "localhost", "*.local"],
   devIndicators: false,
   async rewrites() {
     const rewrites = [];

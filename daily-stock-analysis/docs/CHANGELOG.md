@@ -12,6 +12,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [改进] 个股报告不再单独展示“题材主线与个股位置”卡片，相关市场结构数据仍保留在分析上下文、模型 Prompt 与决策信号提取链路中。
 - [改进] 通知推送与完整 Markdown/微信报告不再重复附加“AI 决策信号”摘要，DecisionSignal 的存储、告警和 Web AI 建议页保持不变。
 - [改进] TickFlow 新增基于申万一级行业池的行业涨跌排行 fallback，并将基本面/市场结构单能力默认超时由 3 秒调整为 8 秒，降低正常慢响应被提前降级的概率。
+- [新功能] 新增可解释投研证据包流水线：/portfolio/performance、/portfolio/review、/portfolio/risk-insight、/portfolio/strategy-candidates、/portfolio/sandbox/what-if、/portfolio/sandbox/scenario 六个确定性计算端点，输出统一 EvidencePack（事实/输入/方法/规则/缺口编号），复盘归因带对账校验。
+- [新功能] 新增 portfolio_investor_profile 与 portfolio_insight_reports 两张表，支持结构化投资者画像阈值（GET/PUT /portfolio/investor-profile）与洞察报告持久化（/portfolio/insight-reports）。
+- [新功能] 新增 PORTFOLIO_RISK_FREE_RATE_PCT 配置项（默认 1.5），用于绩效服务夏普比率计算。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 
