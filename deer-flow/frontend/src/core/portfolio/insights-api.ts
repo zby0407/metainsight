@@ -296,3 +296,244 @@ export async function fetchInsightReports(
   const payload = (await response.json()) as { items?: InsightReportSummary[] };
   return payload.items ?? [];
 }
+
+export interface PersistedInsightReport {
+  pack_id: string;
+  as_of: string;
+  created_at: string;
+  pack: EvidencePack;
+  data: InsightComputedPayload["data"];
+  ai_interpretation: string | null;
+}
+
+/** Load the latest persisted report of a pack type straight from the stock
+ * service so a view can hydrate from an earlier run instead of re-running
+ * the pipeline on every open (pipeline runs at most once per day). */
+export async function fetchLatestInsightReport(
+  packType: InsightPackType,
+): Promise<PersistedInsightReport | null> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `/stock-api/portfolio/insight-reports?pack_type=${packType}&limit=1`,
+      { cache: "no-store" },
+    );
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  const payload = (await response.json()) as {
+    items?: {
+      pack_id?: string;
+      as_of?: string;
+      created_at?: string;
+      evidence_pack?: EvidencePack;
+      data?: InsightComputedPayload["data"];
+      ai_interpretation?: string | null;
+    }[];
+  };
+  const item = payload.items?.[0];
+  if (!item?.evidence_pack) return null;
+  return {
+    pack_id: item.pack_id ?? item.evidence_pack.pack_id,
+    as_of: item.as_of ?? item.evidence_pack.as_of,
+    created_at: item.created_at ?? "",
+    pack: item.evidence_pack,
+    data: (item.data ?? {}) as InsightComputedPayload["data"],
+    ai_interpretation: item.ai_interpretation ?? null,
+  };
+}
+
+/** Deterministic strategy candidates (no AI pass) so the view paints instantly. */
+export async function fetchStrategyCandidates(params?: {
+  account_id?: number | null;
+  owner_id?: string;
+  cost_method?: string;
+}): Promise<{ pack: EvidencePack; data: StrategyData } | null> {
+  const search = new URLSearchParams();
+  if (params?.account_id != null) search.set("account_id", String(params.account_id));
+  search.set("owner_id", params?.owner_id ?? "default");
+  search.set("cost_method", params?.cost_method ?? "fifo");
+  let response: Response;
+  try {
+    response = await fetch(`/stock-api/portfolio/strategy-candidates?${search.toString()}`, {
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  return (await response.json()) as { pack: EvidencePack; data: StrategyData };
+}
+
+export interface InvestorProfile {
+  owner_id: string;
+  cash_floor_pct: number;
+  single_position_cap_pct: number;
+  sector_cap_pct: number;
+  rebalance_threshold_pct: number;
+  stop_loss_pct: number;
+  source: "stored" | "default";
+}
+
+/** Thresholds used by the sandbox for local constraint hints. */
+export async function fetchInvestorProfile(
+  ownerId = "default",
+): Promise<InvestorProfile | null> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `/stock-api/portfolio/investor-profile?owner_id=${encodeURIComponent(ownerId)}`,
+      { cache: "no-store" },
+    );
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  return (await response.json()) as InvestorProfile;
+}
+
+export interface SandboxComputedResult {
+  pack: EvidencePack;
+  data: WhatIfData & ScenarioData & Record<string, unknown>;
+}
+
+/** Deterministic sandbox compute (no AI pass). Used for instant previews so
+ * dragging a slider never waits on the interpretation stream. */
+export async function runSandboxWhatIf(body: {
+  account_id?: number | null;
+  adjustments?: { symbol: string; delta_weight_pct: number }[];
+  cost_method?: string;
+}): Promise<SandboxComputedResult | null> {
+  let response: Response;
+  try {
+    response = await fetch("/stock-api/portfolio/sandbox/what-if", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  return (await response.json()) as SandboxComputedResult;
+}
+
+export async function runSandboxScenario(body: {
+  account_id?: number | null;
+  start_date: string;
+  end_date: string;
+  proposed_weights: Record<string, number>;
+  cost_method?: string;
+}): Promise<SandboxComputedResult | null> {
+  let response: Response;
+  try {
+    response = await fetch("/stock-api/portfolio/sandbox/scenario", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+      cache: "no-store",
+    });
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  return (await response.json()) as SandboxComputedResult;
+}
+
+export interface RebalanceTarget {
+  symbol: string;
+  market: string;
+  current_weight_pct: number;
+  target_weight_pct: number;
+  unrealized_pnl_pct?: number | null;
+  baseline_weight_pct?: number | null;
+  reasons: string[];
+  signal?: { id?: number | null; action?: string; stock_code?: string } | null;
+}
+
+export interface RebalanceTrade {
+  symbol: string;
+  market: string;
+  side: "buy" | "sell";
+  quantity: number;
+  price: number;
+  estimated_value: number;
+  estimated_fee: number;
+  estimated_tax?: number | null;
+  lot_rounded?: boolean | null;
+  post_weight_pct?: number | null;
+}
+
+export interface RebalancePlan {
+  profile_source: string;
+  window_days: number;
+  plan: {
+    plan_id: string;
+    cash_before_pct: number;
+    cash_after_pct: number;
+    targets: RebalanceTarget[];
+    trades: RebalanceTrade[];
+  };
+  comparison: ScenarioData;
+}
+
+export async function fetchRebalancePlan(
+  windowDays: number,
+): Promise<RebalancePlan | null> {
+  let response: Response;
+  try {
+    response = await fetch(
+      `/stock-api/portfolio/rebalance-plan?window_days=${windowDays}`,
+      { cache: "no-store" },
+    );
+  } catch {
+    return null;
+  }
+  if (!response.ok) return null;
+  const payload = (await response.json()) as { data?: RebalancePlan };
+  return payload.data ?? null;
+}
+
+export interface RebalanceExecutionResult {
+  executed: { symbol: string; side: string }[];
+  skipped: { symbol: string; side: string; reason: string }[];
+}
+
+export interface RebalanceExecutionOutcome {
+  result: RebalanceExecutionResult | null;
+  error: string | null;
+}
+
+/** Execute the plan the user confirmed. `expectedPlanId` lets the backend
+ * reject (409) when the portfolio drifted after the preview was rendered. */
+export async function executeRebalancePlan(
+  windowDays: number,
+  expectedPlanId?: string | null,
+): Promise<RebalanceExecutionOutcome> {
+  let response: Response;
+  try {
+    response = await fetch("/stock-api/portfolio/rebalance-plan/execute", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        window_days: windowDays,
+        expected_plan_id: expectedPlanId ?? null,
+      }),
+    });
+  } catch {
+    return { result: null, error: "网络错误，请稍后重试" };
+  }
+  if (!response.ok) {
+    let detail = `执行失败（HTTP ${response.status}）`;
+    try {
+      const payload = (await response.json()) as { detail?: unknown };
+      if (typeof payload.detail === "string") detail = payload.detail;
+    } catch {
+      // fall through to the generic message
+    }
+    return { result: null, error: detail };
+  }
+  return { result: (await response.json()) as RebalanceExecutionResult, error: null };
+}

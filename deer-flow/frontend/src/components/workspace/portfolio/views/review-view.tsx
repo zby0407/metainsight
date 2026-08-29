@@ -67,6 +67,13 @@ export function ReviewView({ item }: { item: PortfolioDashboardItem }) {
         end_date: dates.end,
       })}
       autoRunKey={autoRunKey}
+      persistedValidator={(report) => {
+        const review = report.data as unknown as {
+          period_start?: string;
+          period_end?: string;
+        };
+        return review.period_start === dates.start && review.period_end === dates.end;
+      }}
       headline={(data) => {
         const review = data as unknown as {
           period_return_pct: number | null;

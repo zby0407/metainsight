@@ -710,6 +710,7 @@ class PortfolioInsightReport(Base):
     account_id = Column(Integer, ForeignKey('portfolio_accounts.id'), nullable=False, index=True)
     pack_type = Column(String(16), nullable=False, index=True)  # review/risk/strategy/sandbox
     evidence_pack_json = Column(Text, nullable=False)
+    data_json = Column(Text)
     ai_interpretation = Column(Text)
     created_at = Column(DateTime, default=datetime.now, index=True)
 
@@ -1249,6 +1250,7 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             self._ensure_intelligence_item_scope_values()
             self._ensure_schema_migration_record()
             self._ensure_intelligence_items_unique_index()
+            self._ensure_insight_report_data_column()
 
             self._initialized = True
             logger.info(f"数据库初始化完成: {db_url}")
@@ -1266,6 +1268,29 @@ class DatabaseManager(metaclass=_DatabaseManagerMeta):
             self._SessionLocal = None
             self.__class__._instance = None
             raise
+
+    def _ensure_insight_report_data_column(self) -> None:
+        """Backfill the nullable data_json column on existing insight tables."""
+        if not self._is_sqlite_engine:
+            return
+        table = PortfolioInsightReport.__tablename__
+        try:
+            existing = {column["name"] for column in inspect(self._engine).get_columns(table)}
+        except Exception as exc:
+            logger.warning("[insight reports] failed to inspect columns: %s", exc)
+            return
+        if "data_json" in existing:
+            return
+        try:
+            with self._engine.begin() as connection:
+                connection.exec_driver_sql(
+                    f"ALTER TABLE {table} ADD COLUMN data_json TEXT"
+                )
+        except OperationalError as exc:
+            if not self._is_sqlite_duplicate_column_error(exc, "data_json"):
+                logger.warning("[insight reports] data_json backfill failed: %s", exc)
+        except Exception as exc:
+            logger.warning("[insight reports] data_json backfill failed: %s", exc)
 
     def _ensure_schema_migration_record(self) -> None:
         session = self._SessionLocal()

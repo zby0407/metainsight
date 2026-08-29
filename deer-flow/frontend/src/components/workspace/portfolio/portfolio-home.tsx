@@ -44,6 +44,7 @@ export function PortfolioHome() {
     useStockPortfolioDashboard();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<PortfolioView>("overview");
+  const [sandboxSeed, setSandboxSeed] = useState<Record<string, number> | null>(null);
 
   // Real data only — no demo fallback. Empty while loading, error state on
   // failure, empty state when the account genuinely has no portfolios.
@@ -97,6 +98,11 @@ export function PortfolioHome() {
                 setSelectedId(id);
                 setActiveView("holdings");
               }}
+              onPushToSandbox={(targets) => {
+                setSandboxSeed(targets);
+                setActiveView("sandbox");
+              }}
+              sandboxSeed={sandboxSeed}
             />
           ) : isLoading ? (
             <DashboardSkeleton />
@@ -134,11 +140,15 @@ function MainView({
   item,
   portfolios,
   onSelectPortfolio,
+  onPushToSandbox,
+  sandboxSeed,
 }: {
   view: PortfolioView;
   item: PortfolioDashboardItem;
   portfolios: PortfolioDashboardItem[];
   onSelectPortfolio: (id: string) => void;
+  onPushToSandbox: (targets: Record<string, number>) => void;
+  sandboxSeed: Record<string, number> | null;
 }) {
   switch (view) {
     case "overview":
@@ -160,9 +170,9 @@ function MainView({
     case "review":
       return <ReviewView item={item} />;
     case "strategy":
-      return <StrategyView item={item} />;
+      return <StrategyView item={item} onPushToSandbox={onPushToSandbox} />;
     case "sandbox":
-      return <SandboxView item={item} />;
+      return <SandboxView item={item} seedTargets={sandboxSeed} />;
     case "forecast":
       return <ComingSoonView view={view} />;
     default:

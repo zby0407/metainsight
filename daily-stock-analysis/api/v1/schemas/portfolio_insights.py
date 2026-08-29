@@ -162,6 +162,8 @@ class ReviewCashFlowItem(BaseModel):
 
 
 class PortfolioReviewData(BaseModel):
+    period_start: Optional[str] = None
+    period_end: Optional[str] = None
     period_return_pct: Optional[float] = None
     equity_start: Optional[float] = None
     equity_end: Optional[float] = None
@@ -322,6 +324,7 @@ class InvestorProfileUpdateRequest(BaseModel):
 
 class InsightReportSaveRequest(BaseModel):
     pack: EvidencePackResponse
+    data: Dict[str, Any] = Field(default_factory=dict)
     ai_interpretation: Optional[str] = None
 
 
@@ -333,8 +336,33 @@ class InsightReportItem(BaseModel):
     created_at: str
     ai_interpretation: Optional[str] = None
     evidence_pack: Optional[EvidencePackResponse] = None
+    data: Dict[str, Any] = Field(default_factory=dict)
 
 
 class InsightReportListResponse(BaseModel):
     items: List[InsightReportItem] = Field(default_factory=list)
     total: int = 0
+
+
+# ----------------------------------------------------------------------
+# AI rebalance plan
+# ----------------------------------------------------------------------
+
+class RebalancePlanResponse(BaseModel):
+    pack: EvidencePackResponse
+    data: Dict[str, Any] = Field(default_factory=dict)
+
+
+class RebalanceExecuteRequest(BaseModel):
+    account_id: Optional[int] = None
+    window_days: int = Field(90, ge=7, le=365)
+    expected_plan_id: Optional[str] = Field(
+        None,
+        description="Plan id shown to the user; execution aborts with 409 when the recomputed plan differs",
+    )
+
+
+class RebalanceExecuteResponse(BaseModel):
+    executed: List[Dict[str, Any]] = Field(default_factory=list)
+    skipped: List[Dict[str, Any]] = Field(default_factory=list)
+    plan: Dict[str, Any] = Field(default_factory=dict)

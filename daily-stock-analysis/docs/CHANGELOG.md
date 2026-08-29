@@ -15,6 +15,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/).
 - [新功能] 新增可解释投研证据包流水线：/portfolio/performance、/portfolio/review、/portfolio/risk-insight、/portfolio/strategy-candidates、/portfolio/sandbox/what-if、/portfolio/sandbox/scenario 六个确定性计算端点，输出统一 EvidencePack（事实/输入/方法/规则/缺口编号），复盘归因带对账校验。
 - [新功能] 新增 portfolio_investor_profile 与 portfolio_insight_reports 两张表，支持结构化投资者画像阈值（GET/PUT /portfolio/investor-profile）与洞察报告持久化（/portfolio/insight-reports）。
 - [新功能] 新增 PORTFOLIO_RISK_FREE_RATE_PCT 配置项（默认 1.5），用于绩效服务夏普比率计算。
+- [新功能] 新增 AI 调仓计划端点 /portfolio/rebalance-plan 与 /rebalance-plan/execute：基于画像阈值与活跃防御性决策信号生成目标权重与交易清单，附调仓 vs 不调仓历史对比投影；执行以幂等 trade_uid 写入交易流水。
+- [改进] 调仓计划规则引擎与策略建议层统一：新增止损防御减半（浮亏越过止损线时目标权重减半）与超配漂移回归（权重较 30 天前基线上漂超阈值时回归基线）两条确定性规则，全部调整保持只减不加；基线快照缺失时跳过漂移检查并在证据包记录缺口；目标明细新增 unrealized_pnl_pct 与 baseline_weight_pct 字段。
+- [修复] AI 调仓方案执行不再与预览脱节：方案返回确定性 plan_id（交易清单内容哈希），执行接口新增 expected_plan_id，服务端重算后不一致直接返回 409，避免展示的方案与写入的交易不同；前端冲突时提示并自动刷新方案。
+- [改进] 调仓交易清单更贴近真实下单：A 股按 100 股整手取整、目标为 0 时清空剩余零股，A 股卖出另计印花税（0.05%）并写入交易流水 tax 字段；硬性约束（超上限/止损/清仓信号）差额不足一手时按最小一手成交以免违规敞口被吞掉，软性目标（漂移回归）不足一手则不下单并在证据包缺口中说明。
+- [改进] 洞察报告持久化增加 data_json 列（存量库自动 ALTER 补列），视图打开时优先水合当日已存报告，流水线每日至多运行一次。
 <!-- 新条目格式：- [类型] 描述（类型取值：新功能/改进/修复/文档/测试/chore）-->
 <!-- 每条独立一行追加到本段末尾，无需分类标题，合并时冲突最小 -->
 

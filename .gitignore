@@ -43,3 +43,6 @@ longbridge_tokens/
 # Playwright / test artifacts
 test-results/
 playwright-report/
+
+# WorkBuddy workspace memory (local only)
+.workbuddy/

@@ -189,6 +189,8 @@ class PortfolioReviewService:
         ]
 
         data = {
+            "period_start": start.isoformat(),
+            "period_end": end.isoformat(),
             "period_return_pct": (
                 (equity_end - equity_start - net_cash_flow) / equity_start * 100.0
                 if equity_start > 0

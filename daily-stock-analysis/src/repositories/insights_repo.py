@@ -105,6 +105,7 @@ class InsightsRepository:
         pack_type: str,
         as_of: str,
         evidence_pack: Dict[str, Any],
+        data: Optional[Dict[str, Any]] = None,
         ai_interpretation: Optional[str] = None,
     ) -> Dict[str, Any]:
         with self.db.get_session() as session:
@@ -116,6 +117,8 @@ class InsightsRepository:
             if existing is not None:
                 if ai_interpretation is not None:
                     existing.ai_interpretation = ai_interpretation
+                if data is not None:
+                    existing.data_json = json.dumps(data, ensure_ascii=False)
                 session.commit()
                 return self._row_to_dict(existing)
             row = PortfolioInsightReport(
@@ -123,6 +126,7 @@ class InsightsRepository:
                 account_id=account_id,
                 pack_type=pack_type,
                 evidence_pack_json=json.dumps(evidence_pack, ensure_ascii=False),
+                data_json=json.dumps(data, ensure_ascii=False) if data is not None else None,
                 ai_interpretation=ai_interpretation,
             )
             session.add(row)
@@ -175,6 +179,11 @@ class InsightsRepository:
         except (TypeError, ValueError):
             logger.warning("Insight report %s has invalid evidence_pack_json", row.pack_id)
             evidence_pack = {}
+        try:
+            data = json.loads(row.data_json) if row.data_json else {}
+        except (TypeError, ValueError):
+            logger.warning("Insight report %s has invalid data_json", row.pack_id)
+            data = {}
         return {
             "pack_id": row.pack_id,
             "account_id": row.account_id,
@@ -183,4 +192,5 @@ class InsightsRepository:
             "created_at": row.created_at.isoformat() if row.created_at else "",
             "ai_interpretation": row.ai_interpretation,
             "evidence_pack": evidence_pack,
+            "data": data,
         }

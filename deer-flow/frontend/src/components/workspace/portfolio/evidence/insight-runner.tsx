@@ -6,9 +6,11 @@ import type { ReactNode } from "react";
 
 import type { EvidencePack, InsightPackType } from "@/core/portfolio/evidence-pack";
 import {
+  fetchLatestInsightReport,
   streamInsightGenerate,
   type InsightComputedPayload,
   type InsightGenerateBody,
+  type PersistedInsightReport,
 } from "@/core/portfolio/insights-api";
 import { cn } from "@/lib/utils";
 
@@ -37,6 +39,11 @@ export interface InsightRunnerProps {
   panel?: ReactNode;
   /** One-line headline derived from the computed data (deterministic). */
   headline?: (data: InsightComputedPayload["data"], pack: EvidencePack) => string | null;
+  /** Optional check whether a persisted report matches the view's current
+   * parameters (e.g. review period). Return false to force a fresh run. */
+  persistedValidator?: (report: PersistedInsightReport) => boolean;
+  /** Optional block rendered after the structured results (e.g. rebalance plan). */
+  below?: ReactNode;
   renderStructured: (
     data: InsightComputedPayload["data"],
     pack: EvidencePack,
@@ -54,6 +61,8 @@ export function InsightRunner({
   controls,
   panel,
   headline,
+  persistedValidator,
+  below,
   renderStructured,
 }: InsightRunnerProps) {
   const [stage, setStage] = useState<PipelineStage>("idle");
@@ -135,18 +144,59 @@ export function InsightRunner({
   autoRunRef.current = run;
   const autoRunKeyRef = useRef(autoRunKey);
   autoRunKeyRef.current = autoRunKey;
+  const validatorRef = useRef(persistedValidator);
+  validatorRef.current = persistedValidator;
+
   useEffect(() => {
-    const hit = getCachedInsight(insightCacheKey(packType, autoRunKey));
-    if (hit) {
-      setStage(hit.stage);
-      setPack(hit.pack);
-      setData(hit.data);
-      setAiText(hit.aiText);
-      setPackId(hit.packId);
+    const key = insightCacheKey(packType, autoRunKey);
+    const hydrate = (value: {
+      stage: PipelineStage;
+      pack: EvidencePack;
+      data: InsightComputedPayload["data"];
+      aiText: string;
+      packId: string | null;
+    }) => {
+      setStage(value.stage);
+      setPack(value.pack);
+      setData(value.data);
+      setAiText(value.aiText);
+      setPackId(value.packId);
       setErrorMessage("");
+    };
+
+    const hit = getCachedInsight(key);
+    if (hit) {
+      hydrate(hit);
       return;
     }
-    if (autoRunKey != null) void autoRunRef.current();
+
+    let cancelled = false;
+    void (async () => {
+      const report = await fetchLatestInsightReport(packType);
+      if (cancelled || !mountedRef.current) return;
+      const today = new Date().toLocaleDateString("sv-SE");
+      const freshEnough =
+        report != null &&
+        Object.keys(report.data ?? {}).length > 0 &&
+        (autoRunKey == null || report.as_of === today) &&
+        (!validatorRef.current || validatorRef.current(report));
+      if (report && freshEnough) {
+        const value = {
+          stage: "done" as PipelineStage,
+          pack: report.pack,
+          data: report.data,
+          aiText: report.ai_interpretation ?? "",
+          packId: report.pack_id,
+        };
+        setCachedInsight(key, value);
+        hydrate(value);
+        return;
+      }
+      if (autoRunKey != null) void autoRunRef.current();
+    })();
+    return () => {
+      cancelled = true;
+    };
   }, [autoRunKey, packType]);
 
   const index = useEvidenceIndex(pack);
@@ -228,6 +278,8 @@ export function InsightRunner({
 
         {pack && data ? renderStructured(data, pack) : null}
 
+        {below}
+
         {aiText || stage === "interpreting" || (stage === "done" && pack) ? (
           <section>
             <div className="border-border flex items-baseline justify-between border-t pt-3">
@@ -262,7 +314,7 @@ export function InsightRunner({
       </div>
 
       {/* evidence rail */}
-      <aside className="border-border bg-card hidden w-[300px] shrink-0 overflow-hidden rounded-2xl border xl:block">
+      <aside className="border-border bg-card sticky top-0 hidden h-[calc(100vh_-_8rem)] w-[300px] shrink-0 self-start overflow-hidden rounded-2xl border xl:block">
         <EvidenceRail
           pack={pack}
           onFollowUp={

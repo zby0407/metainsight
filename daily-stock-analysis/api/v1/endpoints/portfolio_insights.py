@@ -27,6 +27,9 @@ from api.v1.schemas.portfolio_insights import (
     PortfolioReviewResponse,
     PortfolioRiskInsightResponse,
     PortfolioStrategyResponse,
+    RebalanceExecuteRequest,
+    RebalanceExecuteResponse,
+    RebalancePlanResponse,
     SandboxScenarioRequest,
     SandboxScenarioResponse,
     SandboxWhatIfRequest,
@@ -34,6 +37,7 @@ from api.v1.schemas.portfolio_insights import (
 )
 from src.repositories.insights_repo import DEFAULT_PROFILE, InsightsRepository
 from src.services.portfolio_performance_service import PortfolioPerformanceService
+from src.services.portfolio_rebalance_service import PlanStaleError, PortfolioRebalanceService
 from src.services.portfolio_review_service import PortfolioReviewService
 from src.services.portfolio_risk_insight import PortfolioRiskInsightService
 from src.services.portfolio_sandbox_service import PortfolioSandboxService
@@ -237,6 +241,54 @@ def sandbox_scenario(request: SandboxScenarioRequest) -> SandboxScenarioResponse
         raise _internal_error("Sandbox scenario failed", exc)
 
 
+@router.get(
+    "/rebalance-plan",
+    response_model=RebalancePlanResponse,
+    responses={400: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="AI rebalance plan with no-rebalance comparison (evidence pack)",
+)
+def get_rebalance_plan(
+    account_id: Optional[int] = Query(None),
+    window_days: int = Query(90, ge=7, le=365),
+    cost_method: str = Query("fifo", pattern="^(fifo|avg)$"),
+) -> RebalancePlanResponse:
+    service = PortfolioRebalanceService()
+    try:
+        result = service.build_plan(
+            account_id=account_id,
+            window_days=window_days,
+            cost_method=cost_method,
+        )
+        return RebalancePlanResponse(**result)
+    except ValueError as exc:
+        raise _bad_request(exc)
+    except Exception as exc:
+        raise _internal_error("Rebalance plan failed", exc)
+
+
+@router.post(
+    "/rebalance-plan/execute",
+    response_model=RebalanceExecuteResponse,
+    responses={400: {"model": ErrorResponse}, 409: {"model": ErrorResponse}, 500: {"model": ErrorResponse}},
+    summary="Execute the confirmed AI rebalance plan as recorded trades",
+)
+def execute_rebalance_plan(request: RebalanceExecuteRequest) -> RebalanceExecuteResponse:
+    service = PortfolioRebalanceService()
+    try:
+        result = service.execute_plan(
+            account_id=request.account_id,
+            window_days=request.window_days,
+            expected_plan_id=request.expected_plan_id,
+        )
+        return RebalanceExecuteResponse(**result)
+    except PlanStaleError as exc:
+        raise api_error(409, "plan_stale", str(exc))
+    except ValueError as exc:
+        raise _bad_request(exc)
+    except Exception as exc:
+        raise _internal_error("Rebalance execution failed", exc)
+
+
 # ----------------------------------------------------------------------
 # Investor profile
 # ----------------------------------------------------------------------
@@ -298,6 +350,7 @@ def save_insight_report(request: InsightReportSaveRequest) -> InsightReportItem:
             pack_type=pack.pack_type,
             as_of=pack.as_of,
             evidence_pack=pack.model_dump(),
+            data=request.data,
             ai_interpretation=request.ai_interpretation,
         )
         return InsightReportItem(**row)

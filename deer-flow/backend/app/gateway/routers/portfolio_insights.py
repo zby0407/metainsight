@@ -280,7 +280,11 @@ async def generate_insight(
                 async with httpx.AsyncClient(timeout=_SAVE_TIMEOUT) as client:
                     save_response = await client.post(
                         f"{stock_base_url()}/portfolio/insight-reports",
-                        json={"pack": computed["pack"], "ai_interpretation": interpretation},
+                        json={
+                            "pack": computed["pack"],
+                            "data": computed.get("data") or {},
+                            "ai_interpretation": interpretation,
+                        },
                     )
                 report_saved = save_response.status_code < 300
             except httpx.HTTPError:

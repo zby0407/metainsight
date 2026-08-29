@@ -40,6 +40,7 @@ export function EvidenceBadge({ id }: { id: string }) {
   return (
     <button
       type="button"
+      data-evidence-id={id}
       title={summary}
       onClick={() => {
         const target = document.getElementById(`evidence-${id}`);
